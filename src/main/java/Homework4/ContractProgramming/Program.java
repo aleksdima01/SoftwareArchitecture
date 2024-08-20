@@ -1,24 +1,26 @@
 package Homework4.ContractProgramming;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.Random;
 
 public class Program {
     public static void main(String[] args) {
         Core core = new Core();
         MobileApp mobileApp = new MobileApp(core.getTicketProvider(), core.getCustomerProvider());
-        BusStation busStation=new BusStation(core.getTicketProvider());
-
-        if (mobileApp.buyTicket("34234234234")){
+        BusStation busStation = new BusStation(core.getTicketProvider());
+        Date date = new Date();
+        if (mobileApp.buyTicket("34234234234", date)) {
             System.out.println("Клиент успешно купил билет.");
-            mobileApp.searchTicket(new Date());
-            Collection<Ticket> tickets=mobileApp.getTickets();
+            mobileApp.searchTicket(date);
+            Collection<Ticket> tickets = mobileApp.getTickets();
             busStation.checkTicket(tickets.stream().findFirst().get().getQrcode());
-                System.out.println("Клиент успешно прошел в автобус.");
-            }
+            System.out.println("Клиент успешно прошел в автобус.");
         }
     }
+}
 
 
 class Core {
@@ -91,12 +93,24 @@ class Ticket {
         return customerId;
     }
 
+    public void setCustomerId(int customerId) {
+        this.customerId = customerId;
+    }
+
     public Date getDate() {
         return date;
     }
 
+    public void setDate(Date date) {
+        this.date = date;
+    }
+
     public String getQrcode() {
         return qrcode;
+    }
+
+    public void setQrcode(String qrcode) {
+        this.qrcode = qrcode;
     }
 
     public boolean isEnable() {
@@ -113,6 +127,11 @@ class Database {
 
     public Collection<Ticket> getTickets() {
         return tickets;
+    }
+
+    public void setTickets(Ticket ticket) {
+
+        tickets.add(ticket);
     }
 
     public Collection<Customer> getCustomers() {
@@ -158,11 +177,12 @@ class MobileApp {
     }
 
     public void searchTicket(Date date) {
-        customer.setTickets(ticketProvider.searchTicket(customer.getId(), new Date()));
+        Collection<Ticket> a = ticketProvider.searchTicket(customer.getId(), date);
+        customer.setTickets(a);
     }
 
-    public boolean buyTicket(String cardNo) {
-        return ticketProvider.buyTicket(customer.getId(), cardNo);
+    public boolean buyTicket(String cardNo, Date date) {
+        return ticketProvider.buyTicket(customer.getId(), cardNo, date);
     }
 }
 
@@ -170,9 +190,15 @@ class TicketProvider {
     private Database database;
     private final PaymentProvider paymentProvider;
 
+    private String qrCode;
+
     public TicketProvider(Database database, PaymentProvider paymentProvider) {
         this.database = database;
         this.paymentProvider = paymentProvider;
+    }
+
+    public String getQrCode() {
+        return qrCode;
     }
 
     public Collection<Ticket> searchTicket(int clientId, Date date) {
@@ -184,10 +210,27 @@ class TicketProvider {
         return tickets;
     }
 
-    public boolean buyTicket(int clientId, String cardNo) {
+    public String generateQr() {
+        byte[] array = new byte[7]; // length is bounded by 7
+        new Random().nextBytes(array);
+        String generatedString = new String(array, Charset.forName("UTF-8"));
+        return generatedString;
+    }
+
+    public boolean buyTicket(int clientId, String cardNo, Date date) {
         int orderId = database.createTicketOrder(clientId);
         double amount = database.getTicketAmount();
-        return paymentProvider.buyTicket(orderId, cardNo, amount);
+        if (paymentProvider.buyTicket(orderId, cardNo, amount)) {
+            Ticket ticket = new Ticket();
+            ticket.setCustomerId(clientId);
+            ticket.setDate(date);
+            String qr=generateQr();
+            ticket.setQrcode(qr);
+            qrCode=qr;
+            database.setTickets(ticket);
+            return true;
+        }
+        return false;
     }
 
     public boolean checkTicket(String qrcode) {

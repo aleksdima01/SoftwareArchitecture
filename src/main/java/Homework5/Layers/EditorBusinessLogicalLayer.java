@@ -28,6 +28,11 @@ public class EditorBusinessLogicalLayer implements BusinessLogicalLayer {
     }
 
     @Override
+    public void removeModel(Model3D model) {
+        databaseAccess.removeEntity(model);
+    }
+
+    @Override
     public void renderAllModels() {
         for (Model3D model : getAllModels())
             processRender(model);

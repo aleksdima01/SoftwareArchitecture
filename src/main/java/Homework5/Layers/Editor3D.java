@@ -98,6 +98,14 @@ public class Editor3D implements UILayer {
         businessLogicalLayer.renderModel(models.get(i));
         long allTime = (System.currentTimeMillis() - startTime);
         System.out.printf("Операция выполнена за %d мс.\n", allTime);
+    }
 
+    public void removeModel(int i){
+        checkProjectFile();
+
+        ArrayList<Model3D> models = (ArrayList<Model3D>) businessLogicalLayer.getAllModels();
+        if (i < 0 || i > models.size() - 1)
+            throw new RuntimeException("Номер модели указан неверно");
+        businessLogicalLayer.removeModel(models.get(i));
     }
 }
